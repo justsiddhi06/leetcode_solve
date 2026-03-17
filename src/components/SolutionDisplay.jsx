@@ -4,6 +4,7 @@ import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon } from 'lucide-r
 
 export function SolutionDisplay({ data }) {
   const [activeLang, setActiveLang] = useState('hinglish');
+  const [activeCodeLang, setActiveCodeLang] = useState('python');
 
   if (!data) return null;
 
@@ -33,6 +34,11 @@ export function SolutionDisplay({ data }) {
   const stepsToRender = Array.isArray(data.steps) 
     ? data.steps 
     : (data.steps && data.steps[activeLang]) || [];
+
+  // Graceful fallback if the API returns a string instead of a multi-language object
+  const codeToRender = typeof data.code === 'string'
+    ? data.code
+    : (data.code && data.code[activeCodeLang]) || '// Code not available in this language';
 
   return (
     <motion.div 
@@ -114,20 +120,40 @@ export function SolutionDisplay({ data }) {
 
         {/* Code Solution */}
         <motion.section variants={itemVariants} className="bg-[#0f111a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-          <div className="bg-[#1a1d27] px-6 py-4 flex items-center justify-between border-b border-white/5">
+          <div className="bg-[#1a1d27] px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5">
             <h3 className="flex items-center gap-2 font-semibold text-slate-200">
               <Code2 className="w-5 h-5 text-purple-400" />
               Optimal Solution
             </h3>
-            <div className="flex gap-2">
+            
+            {/* Code Language Tabs */}
+            {typeof data.code !== 'string' && (
+              <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
+                {['python', 'java', 'c', 'cpp'].map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => setActiveCodeLang(lang)}
+                    className={`flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      activeCodeLang === lang 
+                        ? 'bg-purple-500/20 text-purple-300 shadow-sm' 
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    }`}
+                  >
+                    {lang === 'cpp' ? 'C++' : lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <div className="hidden sm:flex gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
               <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
             </div>
           </div>
-          <div className="p-6 overflow-x-auto">
+          <div className="p-6 overflow-x-auto min-h-[200px]">
             <pre className="text-sm text-slate-300 font-mono">
-              <code>{data.code}</code>
+              <code>{codeToRender}</code>
             </pre>
           </div>
         </motion.section>
