@@ -24,7 +24,6 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const prompt = `You are a LeetCode expert. Provide the optimal solution for the following LeetCode problem: "${problemNumber}".
-The solution MUST be written in Python.
 You must return the response strictly as a JSON object with the following structure:
 {
   "title": "Problem Number. Problem Title",
@@ -35,7 +34,12 @@ You must return the response strictly as a JSON object with the following struct
     "hindi": ["कदम 1 हिंदी में", "कदम 2 हिंदी में"],
     "hinglish": ["Step 1 in Hinglish", "Step 2 in Hinglish"]
   },
-  "code": "The optimal python code solution here"
+  "code": {
+    "python": "def optimal_solution...",
+    "java": "class Solution {\\n    public...",
+    "c": "int* optimalSolution...",
+    "cpp": "class Solution {\\npublic:..."
+  }
 }
 
 Do NOT include any markdown formatting like \`\`\`json around the response. Return raw JSON only.`;
