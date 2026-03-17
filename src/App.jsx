@@ -19,7 +19,7 @@ function App() {
       const data = await solveProblem(problemNumber);
       setSolutionData(data);
     } catch (err) {
-      setError('Failed to find problem. Please check the number and try again.');
+      setError(err.message || 'Failed to find problem. Please check the number and try again.');
     } finally {
       setIsLoading(false);
     }
