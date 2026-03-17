@@ -24,7 +24,7 @@ export function ProblemInput({ onSolve, isLoading }) {
           Crack Any LeetCode Problem
         </h2>
         <p className="text-slate-400 text-lg">
-          Enter the problem number and instantly get the algorithm, step-by-step solution, and code.
+          Enter the problem number or name and instantly get the algorithm, step-by-step solution, and code.
         </p>
       </div>
 
@@ -35,11 +35,10 @@ export function ProblemInput({ onSolve, isLoading }) {
             <Search className="w-6 h-6" />
           </div>
           <input
-            type="number"
-            min="1"
+            type="text"
             value={problemNumber}
             onChange={(e) => setProblemNumber(e.target.value)}
-            placeholder="e.g. 1"
+            placeholder="e.g. 1 or Two Sum"
             className="w-full bg-transparent border-none text-white text-xl px-4 py-3 focus:outline-none placeholder:text-slate-500"
             disabled={isLoading}
           />

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Code2, Lightbulb, ListOrdered } from 'lucide-react';
+import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon } from 'lucide-react';
 
 export function SolutionDisplay({ data }) {
+  const [activeLang, setActiveLang] = useState('hinglish');
+
   if (!data) return null;
 
   const getDifficultyColor = (diff) => {
@@ -26,6 +28,11 @@ export function SolutionDisplay({ data }) {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
+
+  // Graceful fallback if the API returns the old flat array format instead of an object
+  const stepsToRender = Array.isArray(data.steps) 
+    ? data.steps 
+    : (data.steps && data.steps[activeLang]) || [];
 
   return (
     <motion.div 
@@ -60,12 +67,35 @@ export function SolutionDisplay({ data }) {
 
         {/* Step-by-Step */}
         <motion.section variants={itemVariants} className="bg-secondary/40 border border-white/5 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
-          <h3 className="flex items-center gap-2 text-xl font-semibold text-white mb-6">
-            <ListOrdered className="w-5 h-5 text-blue-400" />
-            Step-by-Step Instructions
-          </h3>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <h3 className="flex items-center gap-2 text-xl font-semibold text-white">
+              <ListOrdered className="w-5 h-5 text-blue-400" />
+              Step-by-Step Instructions
+            </h3>
+            
+            {/* Language Tabs */}
+            {!Array.isArray(data.steps) && (
+              <div className="flex items-center gap-1 bg-[#0f111a] p-1 rounded-lg border border-white/10">
+                <GlobeIcon className="w-4 h-4 text-slate-500 ml-2 mr-1 hidden sm:block" />
+                {['english', 'hindi', 'hinglish'].map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => setActiveLang(lang)}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      activeLang === lang 
+                        ? 'bg-blue-500/20 text-blue-300 shadow-sm' 
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    }`}
+                  >
+                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
           <div className="space-y-4">
-            {data.steps.map((step, index) => (
+            {stepsToRender.map((step, index) => (
               <div key={index} className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-300 font-medium text-sm mt-0.5">
                   {index + 1}
@@ -75,6 +105,10 @@ export function SolutionDisplay({ data }) {
                 </p>
               </div>
             ))}
+            
+            {stepsToRender.length === 0 && (
+              <p className="text-slate-500 italic">No steps available in this language.</p>
+            )}
           </div>
         </motion.section>
 
