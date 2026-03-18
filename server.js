@@ -25,13 +25,22 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const prompt = `You are a LeetCode expert. Provide the optimal solution for the following LeetCode problem: "${problemNumber}".
-CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences).
+CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences). Provide a detailed, line-by-line breakdown of the optimal Python 3 solution in the "interactive_explanation" array, where "code" is the exact line of code and "explanation" is a natural, conversational spoken script explaining that line.
 You must return the response strictly as a JSON object with the following structure:
 {
   "title": "Problem Number. Problem Title",
   "difficulty": "Easy, Medium, or Hard",
   "algorithm": "A brief explanation of the optimal algorithm.",
-  "mermaid": "A raw mermaid code snippet (without markdown backticks) for a flowchart. MUST start with 'graph TD' in exact lowercase. CRITICAL: Keep all node text and edge text extremely simple. Use ONLY alphanumeric letters and spaces. DO NOT use ANY special characters like =, (, ), [, ], {, }, -, > in any label because it breaks the flowchart parser.",
+  "interactive_explanation": [
+    {
+      "code": "class Solution:",
+      "explanation": "This line defines the main class for our solution."
+    },
+    {
+      "code": "    def twoSum(self, nums, target):",
+      "explanation": "We define a function that takes an array of numbers and our target sum."
+    }
+  ],
 
   "steps": {
     "english": ["Step 1 in English", "Step 2 in English"],
@@ -84,6 +93,53 @@ Do NOT include any markdown formatting like \`\`\`json around the response. Retu
   } catch (error) {
     console.error("Server Error:", error);
     res.status(500).json({ error: error.message || "An unexpected error occurred on the server." });
+  }
+});
+
+app.post('/api/explain', async (req, res) => {
+  try {
+    const { title, language, code } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API Key.' });
+    if (!title || !code) return res.status(400).json({ error: 'Missing required fields.' });
+
+    const prompt = `You are a LeetCode tutor.
+Problem: "${title}"
+Language: ${language}
+
+CODE:
+${code}
+
+Provide a detailed, line-by-line spoken-word breakdown of this exact code.
+Return strictly as a JSON object with this exact structure:
+{
+  "interactive_explanation": [
+    {
+      "code": "exact line of code here",
+      "explanation": "natural spoken breakdown of what this line does"
+    }
+  ]
+}
+Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
+
+    const ai = new GoogleGenAI({});
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
+    });
+
+    let content = response.text.trim();
+    const cleanedContent = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    res.json(JSON.parse(cleanedContent));
+
+  } catch (error) {
+    console.error("Explain endpoint error:", error);
+    res.status(500).json({ error: "Failed to generate interactive explanation." });
   }
 });
 

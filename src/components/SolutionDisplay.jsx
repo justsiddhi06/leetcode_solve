@@ -1,16 +1,53 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon, Image as ImageIcon } from 'lucide-react';
-import { MermaidDiagram } from './MermaidDiagram';
+import { InteractivePlayer } from './InteractivePlayer';
 
 export function SolutionDisplay({ data }) {
   const [activeLang, setActiveLang] = useState('hinglish');
   const [activeCodeLang, setActiveCodeLang] = useState('python3');
+  const [explanations, setExplanations] = useState({});
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+
+  React.useEffect(() => {
+    if (data?.interactive_explanation) {
+      setExplanations({ python3: data.interactive_explanation });
+    }
+  }, [data]);
+
+  const handleTabChange = async (lang) => {
+    setActiveCodeLang(lang);
+
+    if (explanations[lang] || typeof data.code === 'string') return;
+
+    setIsLoadingExplanation(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          language: lang,
+          code: data.code[lang]
+        })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.interactive_explanation) {
+          setExplanations(prev => ({ ...prev, [lang]: result.interactive_explanation }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingExplanation(false);
+    }
+  };
 
   if (!data) return null;
 
   const getDifficultyColor = (diff) => {
-    switch(diff.toLowerCase()) {
+    switch (diff.toLowerCase()) {
       case 'easy': return 'text-green-400 border-green-400/20 bg-green-400/10';
       case 'medium': return 'text-yellow-400 border-yellow-400/20 bg-yellow-400/10';
       case 'hard': return 'text-red-400 border-red-400/20 bg-red-400/10';
@@ -32,8 +69,8 @@ export function SolutionDisplay({ data }) {
   };
 
   // Graceful fallback if the API returns the old flat array format instead of an object
-  const stepsToRender = Array.isArray(data.steps) 
-    ? data.steps 
+  const stepsToRender = Array.isArray(data.steps)
+    ? data.steps
     : (data.steps && data.steps[activeLang]) || [];
 
   // Graceful fallback if the API returns a string instead of a multi-language object
@@ -42,7 +79,7 @@ export function SolutionDisplay({ data }) {
     : (data.code && data.code[activeCodeLang]) || '// Code not available in this language';
 
   return (
-    <motion.div 
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="show"
@@ -60,7 +97,7 @@ export function SolutionDisplay({ data }) {
       </motion.div>
 
       <div className="grid grid-cols-1 gap-8">
-        
+
         {/* Algorithm Approach */}
         <motion.section variants={itemVariants} className="bg-secondary/40 border border-white/5 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
           <h3 className="flex items-center gap-2 text-xl font-semibold text-white mb-4">
@@ -71,14 +108,21 @@ export function SolutionDisplay({ data }) {
             {data.algorithm}
           </p>
 
-          {data.mermaid && (
-            <div className="mt-8 pt-6 border-t border-white/10">
-              <h4 className="flex items-center gap-2 text-lg font-medium text-slate-200 mb-4">
-                <ImageIcon className="w-4 h-4 text-pink-400" />
-                Visual Explanation
-              </h4>
-              <MermaidDiagram code={data.mermaid} />
+          {explanations[activeCodeLang] ? (
+            <div className="mt-8 pt-4 border-t border-white/10">
+              <InteractivePlayer explanationData={explanations[activeCodeLang]} />
             </div>
+          ) : isLoadingExplanation ? (
+            <div className="mt-8 pt-4 border-t border-white/10 text-slate-400 text-sm italic flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              Generating Interactive Explainer for {activeCodeLang}...
+            </div>
+          ) : (
+            data.interactive_explanation && (
+              <div className="mt-8 pt-4 border-t border-white/10">
+                <InteractivePlayer explanationData={data.interactive_explanation} />
+              </div>
+            )
           )}
         </motion.section>
 
@@ -89,7 +133,7 @@ export function SolutionDisplay({ data }) {
               <ListOrdered className="w-5 h-5 text-blue-400" />
               Step-by-Step Instructions
             </h3>
-            
+
             {/* Language Tabs */}
             {!Array.isArray(data.steps) && (
               <div className="flex items-center gap-1 bg-[#0f111a] p-1 rounded-lg border border-white/10">
@@ -98,11 +142,10 @@ export function SolutionDisplay({ data }) {
                   <button
                     key={lang}
                     onClick={() => setActiveLang(lang)}
-                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      activeLang === lang 
-                        ? 'bg-blue-500/20 text-blue-300 shadow-sm' 
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeLang === lang
+                        ? 'bg-blue-500/20 text-blue-300 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     {lang.charAt(0).toUpperCase() + lang.slice(1)}
                   </button>
@@ -110,7 +153,7 @@ export function SolutionDisplay({ data }) {
               </div>
             )}
           </div>
-          
+
           <div className="space-y-4">
             {stepsToRender.map((step, index) => (
               <div key={index} className="flex items-start gap-4">
@@ -122,7 +165,7 @@ export function SolutionDisplay({ data }) {
                 </p>
               </div>
             ))}
-            
+
             {stepsToRender.length === 0 && (
               <p className="text-slate-500 italic">No steps available in this language.</p>
             )}
@@ -136,26 +179,25 @@ export function SolutionDisplay({ data }) {
               <Code2 className="w-5 h-5 text-purple-400" />
               Optimal Solution
             </h3>
-            
+
             {/* Code Language Tabs */}
             {typeof data.code !== 'string' && (
               <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 w-full sm:w-auto overflow-x-auto max-h-32">
                 {['python3', 'python', 'cpp', 'java', 'javascript', 'typescript', 'csharp', 'c', 'go', 'kotlin', 'swift', 'rust', 'ruby', 'php', 'dart', 'scala', 'elixir', 'erlang', 'racket'].map((lang) => (
                   <button
                     key={lang}
-                    onClick={() => setActiveCodeLang(lang)}
-                    className={`flex-none px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                      activeCodeLang === lang 
-                        ? 'bg-purple-500/20 text-purple-300 shadow-sm' 
+                    onClick={() => handleTabChange(lang)}
+                    className={`flex-none px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-all ${activeCodeLang === lang
+                        ? 'bg-purple-500/20 text-purple-300 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     {lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : lang === 'javascript' ? 'JavaScript' : lang === 'typescript' ? 'TypeScript' : lang === 'php' ? 'PHP' : lang.charAt(0).toUpperCase() + lang.slice(1)}
                   </button>
                 ))}
               </div>
             )}
-            
+
             <div className="hidden sm:flex gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
