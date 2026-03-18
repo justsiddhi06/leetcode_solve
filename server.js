@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
 
 dotenv.config();
 
@@ -29,6 +30,8 @@ You must return the response strictly as a JSON object with the following struct
   "title": "Problem Number. Problem Title",
   "difficulty": "Easy, Medium, or Hard",
   "algorithm": "A brief explanation of the optimal algorithm.",
+  "mermaid": "A raw mermaid code snippet (without markdown backticks) representing a visual flowchart that explains the optimal algorithm or data structure involved. IMPORTANT MERMAID SYNTAX RULES: 1. You MUST enclose all node labels and edge labels in double quotes (e.g. A[\"Initialize HashMap(num -\u003E index)\"] or A --\u003E|\"num = nums[i]\"| B). 2. Never use unquoted special characters like (, ), =, [, ], {, } in labels, as it breaks the parser.",
+
   "steps": {
     "english": ["Step 1 in English", "Step 2 in English"],
     "hindi": ["कदम 1 हिंदी में", "कदम 2 हिंदी में"],
@@ -44,30 +47,18 @@ You must return the response strictly as a JSON object with the following struct
 
 Do NOT include any markdown formatting like \`\`\`json around the response. Return raw JSON only.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const ai = new GoogleGenAI({});
     
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-        }
-      })
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return res.status(response.status).json({ error: errorData.error?.message || "Failed to fetch from Gemini" });
-    }
-
-    const data = await response.json();
-    let content = data.candidates[0].content.parts[0].text.trim();
+    let content = response.text.trim();
 
     // Clean up markdown code blocks if the model still includes them
     const cleanedContent = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');

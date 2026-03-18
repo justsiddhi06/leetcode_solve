@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon } from 'lucide-react';
+import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon, Image as ImageIcon } from 'lucide-react';
+import { MermaidDiagram } from './MermaidDiagram';
 
 export function SolutionDisplay({ data }) {
   const [activeLang, setActiveLang] = useState('hinglish');
@@ -69,6 +70,16 @@ export function SolutionDisplay({ data }) {
           <p className="text-slate-300 leading-relaxed text-lg">
             {data.algorithm}
           </p>
+
+          {data.mermaid && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <h4 className="flex items-center gap-2 text-lg font-medium text-slate-200 mb-4">
+                <ImageIcon className="w-4 h-4 text-pink-400" />
+                Visual Explanation
+              </h4>
+              <MermaidDiagram code={data.mermaid} />
+            </div>
+          )}
         </motion.section>
 
         {/* Step-by-Step */}
