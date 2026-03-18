@@ -25,12 +25,13 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const prompt = `You are a LeetCode expert. Provide the optimal solution for the following LeetCode problem: "${problemNumber}".
+CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences).
 You must return the response strictly as a JSON object with the following structure:
 {
   "title": "Problem Number. Problem Title",
   "difficulty": "Easy, Medium, or Hard",
   "algorithm": "A brief explanation of the optimal algorithm.",
-  "mermaid": "A raw mermaid code snippet (without markdown backticks) representing a visual flowchart that explains the optimal algorithm or data structure involved. IMPORTANT MERMAID SYNTAX RULES: 1. You MUST enclose all node labels and edge labels in double quotes (e.g. A[\"Initialize HashMap(num -\u003E index)\"] or A --\u003E|\"num = nums[i]\"| B). 2. Never use unquoted special characters like (, ), =, [, ], {, } in labels, as it breaks the parser.",
+  "mermaid": "A raw mermaid code snippet (without markdown backticks) for a flowchart. MUST start with 'graph TD' in exact lowercase. CRITICAL: Keep all node text and edge text extremely simple. Use ONLY alphanumeric letters and spaces. DO NOT use ANY special characters like =, (, ), [, ], {, }, -, > in any label because it breaks the flowchart parser.",
 
   "steps": {
     "english": ["Step 1 in English", "Step 2 in English"],
@@ -38,10 +39,25 @@ You must return the response strictly as a JSON object with the following struct
     "hinglish": ["Step 1 in Hinglish", "Step 2 in Hinglish"]
   },
   "code": {
-    "python": "def optimal_solution...",
+    "cpp": "class Solution {\\npublic:...",
     "java": "class Solution {\\n    public...",
+    "python3": "class Solution:\\n...",
+    "python": "class Solution(object):\\n...",
+    "javascript": "var optimalSolution = function...",
+    "typescript": "function optimalSolution...",
+    "csharp": "public class Solution {...",
     "c": "int* optimalSolution...",
-    "cpp": "class Solution {\\npublic:..."
+    "go": "func optimalSolution...",
+    "kotlin": "class Solution {...",
+    "swift": "class Solution {...",
+    "rust": "impl Solution {...",
+    "ruby": "def optimal_solution...",
+    "php": "class Solution {...",
+    "dart": "class Solution {...",
+    "scala": "object Solution {...",
+    "elixir": "defmodule Solution do...",
+    "erlang": "-module(solution)...",
+    "racket": "(define/contract..."
   }
 }
 
@@ -50,7 +66,7 @@ Do NOT include any markdown formatting like \`\`\`json around the response. Retu
     const ai = new GoogleGenAI({});
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

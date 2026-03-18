@@ -5,7 +5,7 @@ import { MermaidDiagram } from './MermaidDiagram';
 
 export function SolutionDisplay({ data }) {
   const [activeLang, setActiveLang] = useState('hinglish');
-  const [activeCodeLang, setActiveCodeLang] = useState('python');
+  const [activeCodeLang, setActiveCodeLang] = useState('python3');
 
   if (!data) return null;
 
@@ -139,18 +139,18 @@ export function SolutionDisplay({ data }) {
             
             {/* Code Language Tabs */}
             {typeof data.code !== 'string' && (
-              <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
-                {['python', 'java', 'c', 'cpp'].map((lang) => (
+              <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 w-full sm:w-auto overflow-x-auto max-h-32">
+                {['python3', 'python', 'cpp', 'java', 'javascript', 'typescript', 'csharp', 'c', 'go', 'kotlin', 'swift', 'rust', 'ruby', 'php', 'dart', 'scala', 'elixir', 'erlang', 'racket'].map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setActiveCodeLang(lang)}
-                    className={`flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                    className={`flex-none px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-all ${
                       activeCodeLang === lang 
                         ? 'bg-purple-500/20 text-purple-300 shadow-sm' 
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                     }`}
                   >
-                    {lang === 'cpp' ? 'C++' : lang.charAt(0).toUpperCase() + lang.slice(1)}
+                    {lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : lang === 'javascript' ? 'JavaScript' : lang === 'typescript' ? 'TypeScript' : lang === 'php' ? 'PHP' : lang.charAt(0).toUpperCase() + lang.slice(1)}
                   </button>
                 ))}
               </div>

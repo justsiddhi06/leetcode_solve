@@ -5,7 +5,10 @@ mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
   securityLevel: 'loose',
-  fontFamily: 'Inter, sans-serif'
+  flowchart: { htmlLabels: false, useMaxWidth: true },
+  themeVariables: {
+    fontFamily: 'arial, sans-serif'
+  }
 });
 
 export function MermaidDiagram({ code }) {
@@ -18,7 +21,13 @@ export function MermaidDiagram({ code }) {
 
     const renderDiagram = async () => {
       // Sometimes the AI wraps the mermaid code in backticks even if asked not to
-      const cleanedCode = code?.replace(/^```mermaid\s*/i, '').replace(/\s*```$/i, '').trim();
+      let cleanedCode = code?.replace(/^```mermaid\s*/i, '').replace(/\s*```$/i, '').trim();
+      
+      // Fix common AI syntax casing mistakes (Mermaid is strictly case-sensitive)
+      if (cleanedCode) {
+        cleanedCode = cleanedCode.replace(/^(Graph|Flowchart)\s+/i, 'graph ');
+      }
+
       if (!cleanedCode) return;
 
       try {
