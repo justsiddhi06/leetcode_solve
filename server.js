@@ -25,7 +25,7 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const prompt = `You are a LeetCode expert. Provide the optimal solution for the following LeetCode problem: "${problemNumber}".
-CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences). Provide a detailed, line-by-line breakdown of the optimal Python 3 solution in the "interactive_explanation" array, where "code" is the exact line of code and "explanation" is a natural, conversational spoken script explaining that line.
+CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences). Provide a detailed, line-by-line breakdown of the optimal Python 3 solution in the "interactive_explanation" array, where "code" is the exact line of code and "explanation" is a natural, conversational spoken script explaining that line. You ONLY need to provide the "python3" solution in the "code" object. Do NOT provide all languages initially to maximize speed.
 You must return the response strictly as a JSON object with the following structure:
 {
   "title": "Problem Number. Problem Title",
@@ -48,25 +48,7 @@ You must return the response strictly as a JSON object with the following struct
     "hinglish": ["Step 1 in Hinglish", "Step 2 in Hinglish"]
   },
   "code": {
-    "cpp": "class Solution {\\npublic:...",
-    "java": "class Solution {\\n    public...",
-    "python3": "class Solution:\\n...",
-    "python": "class Solution(object):\\n...",
-    "javascript": "var optimalSolution = function...",
-    "typescript": "function optimalSolution...",
-    "csharp": "public class Solution {...",
-    "c": "int* optimalSolution...",
-    "go": "func optimalSolution...",
-    "kotlin": "class Solution {...",
-    "swift": "class Solution {...",
-    "rust": "impl Solution {...",
-    "ruby": "def optimal_solution...",
-    "php": "class Solution {...",
-    "dart": "class Solution {...",
-    "scala": "object Solution {...",
-    "elixir": "defmodule Solution do...",
-    "erlang": "-module(solution)...",
-    "racket": "(define/contract..."
+    "python3": "class Solution:\\n..."
   }
 }
 
@@ -98,30 +80,55 @@ Do NOT include any markdown formatting like \`\`\`json around the response. Retu
 
 app.post('/api/explain', async (req, res) => {
   try {
-    const { title, language, code } = req.body;
+    const { title, language, code, spokenLanguage = 'english' } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API Key.' });
-    if (!title || !code) return res.status(400).json({ error: 'Missing required fields.' });
+    if (!title || !language) return res.status(400).json({ error: 'Missing required fields.' });
 
-    const prompt = `You are a LeetCode tutor.
+    let prompt = '';
+    
+    if (code) {
+      prompt = `You are a LeetCode tutor.
 Problem: "${title}"
-Language: ${language}
+Code Language: ${language}
+Explanation Spoken Language: ${spokenLanguage}
 
 CODE:
 ${code}
 
-Provide a detailed, line-by-line spoken-word breakdown of this exact code.
+Provide a detailed, line-by-line spoken-word breakdown of this exact code in the requested Explanation Spoken Language (${spokenLanguage}).
 Return strictly as a JSON object with this exact structure:
 {
   "interactive_explanation": [
     {
       "code": "exact line of code here",
-      "explanation": "natural spoken breakdown of what this line does"
+      "explanation": "natural spoken breakdown of what this line does in ${spokenLanguage}"
     }
   ]
 }
 Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
+    } else {
+      prompt = `You are a LeetCode tutor.
+Problem: "${title}"
+Target Code Language: ${language}
+Explanation Spoken Language: ${spokenLanguage}
+
+1. Provide the optimal working solution for this problem in ${language}.
+2. Provide a detailed, line-by-line spoken-word breakdown of your generated code in the requested Explanation Spoken Language (${spokenLanguage}).
+
+Return strictly as a JSON object with this exact structure:
+{
+  "code": "exact generated code here",
+  "interactive_explanation": [
+    {
+      "code": "exact line of code here",
+      "explanation": "natural spoken breakdown of what this line does in ${spokenLanguage}"
+    }
+  ]
+}
+Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
+    }
 
     const ai = new GoogleGenAI({});
     const response = await ai.models.generateContent({

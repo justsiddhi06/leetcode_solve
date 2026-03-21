@@ -4,21 +4,25 @@ import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon, Image as ImageI
 import { InteractivePlayer } from './InteractivePlayer';
 
 export function SolutionDisplay({ data }) {
-  const [activeLang, setActiveLang] = useState('hinglish');
+  const [activeLang, setActiveLang] = useState('english');
   const [activeCodeLang, setActiveCodeLang] = useState('python3');
   const [explanations, setExplanations] = useState({});
+  const [codes, setCodes] = useState({});
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
 
   React.useEffect(() => {
     if (data?.interactive_explanation) {
-      setExplanations({ python3: data.interactive_explanation });
+      setExplanations({ python3: { english: data.interactive_explanation } });
+    }
+    if (data?.code && typeof data.code !== 'string') {
+      setCodes(data.code);
+    } else if (typeof data.code === 'string') {
+      setCodes({ python3: data.code });
     }
   }, [data]);
 
-  const handleTabChange = async (lang) => {
-    setActiveCodeLang(lang);
-
-    if (explanations[lang] || typeof data.code === 'string') return;
+  const fetchExplanation = async (codeLang, spokenLang) => {
+    if (explanations[codeLang]?.[spokenLang] || typeof data.code === 'string') return;
 
     setIsLoadingExplanation(true);
     try {
@@ -27,14 +31,24 @@ export function SolutionDisplay({ data }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: data.title,
-          language: lang,
-          code: data.code[lang]
+          language: codeLang,
+          code: codes[codeLang] || "",
+          spokenLanguage: spokenLang
         })
       });
       if (response.ok) {
         const result = await response.json();
         if (result.interactive_explanation) {
-          setExplanations(prev => ({ ...prev, [lang]: result.interactive_explanation }));
+          setExplanations(prev => ({
+            ...prev,
+            [codeLang]: {
+              ...(prev[codeLang] || {}),
+              [spokenLang]: result.interactive_explanation
+            }
+          }));
+        }
+        if (result.code && !codes[codeLang]) {
+          setCodes(prev => ({ ...prev, [codeLang]: result.code }));
         }
       }
     } catch (err) {
@@ -42,6 +56,16 @@ export function SolutionDisplay({ data }) {
     } finally {
       setIsLoadingExplanation(false);
     }
+  };
+
+  const handleCodeLangChange = (lang) => {
+    setActiveCodeLang(lang);
+    fetchExplanation(lang, activeLang);
+  };
+
+  const handleSpokenLangChange = (lang) => {
+    setActiveLang(lang);
+    fetchExplanation(activeCodeLang, lang);
   };
 
   if (!data) return null;
@@ -73,10 +97,9 @@ export function SolutionDisplay({ data }) {
     ? data.steps
     : (data.steps && data.steps[activeLang]) || [];
 
-  // Graceful fallback if the API returns a string instead of a multi-language object
   const codeToRender = typeof data.code === 'string'
     ? data.code
-    : (data.code && data.code[activeCodeLang]) || '// Code not available in this language';
+    : (codes[activeCodeLang]) || '// Generating code for this language...';
 
   return (
     <motion.div
@@ -108,19 +131,19 @@ export function SolutionDisplay({ data }) {
             {data.algorithm}
           </p>
 
-          {explanations[activeCodeLang] ? (
+          {explanations[activeCodeLang]?.[activeLang] ? (
             <div className="mt-8 pt-4 border-t border-white/10">
-              <InteractivePlayer explanationData={explanations[activeCodeLang]} />
+              <InteractivePlayer explanationData={explanations[activeCodeLang][activeLang]} spokenLanguage={activeLang} />
             </div>
           ) : isLoadingExplanation ? (
             <div className="mt-8 pt-4 border-t border-white/10 text-slate-400 text-sm italic flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              Generating Interactive Explainer for {activeCodeLang}...
+              Generating Interactive Explainer in {activeLang.charAt(0).toUpperCase() + activeLang.slice(1)}...
             </div>
           ) : (
             data.interactive_explanation && (
               <div className="mt-8 pt-4 border-t border-white/10">
-                <InteractivePlayer explanationData={data.interactive_explanation} />
+                <InteractivePlayer explanationData={data.interactive_explanation} spokenLanguage={activeLang} />
               </div>
             )
           )}
@@ -141,7 +164,7 @@ export function SolutionDisplay({ data }) {
                 {['english', 'hindi', 'hinglish'].map((lang) => (
                   <button
                     key={lang}
-                    onClick={() => setActiveLang(lang)}
+                    onClick={() => handleSpokenLangChange(lang)}
                     className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeLang === lang
                         ? 'bg-blue-500/20 text-blue-300 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -186,7 +209,7 @@ export function SolutionDisplay({ data }) {
                 {['python3', 'python', 'cpp', 'java', 'javascript', 'typescript', 'csharp', 'c', 'go', 'kotlin', 'swift', 'rust', 'ruby', 'php', 'dart', 'scala', 'elixir', 'erlang', 'racket'].map((lang) => (
                   <button
                     key={lang}
-                    onClick={() => handleTabChange(lang)}
+                    onClick={() => handleCodeLangChange(lang)}
                     className={`flex-none px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-all ${activeCodeLang === lang
                         ? 'bg-purple-500/20 text-purple-300 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'

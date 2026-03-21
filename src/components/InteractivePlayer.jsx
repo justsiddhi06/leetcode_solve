@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Square, Volume2 } from 'lucide-react';
 
-export function InteractivePlayer({ explanationData }) {
+export function InteractivePlayer({ explanationData, spokenLanguage = 'english' }) {
   const [playingIndex, setPlayingIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -43,6 +43,22 @@ export function InteractivePlayer({ explanationData }) {
 
     const utterance = new SpeechSynthesisUtterance(explanationData[index].explanation);
     utterance.rate = 1.0;
+
+    // Set corresponding language for TTS Voice
+    if (spokenLanguage === 'hindi' || spokenLanguage === 'hinglish') {
+        utterance.lang = 'hi-IN';
+    } else {
+        // default to English
+        utterance.lang = 'en-US';
+    }
+    
+    // Attempt to set a native voice for higher quality
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        const langPrefix = utterance.lang.split('-')[0];
+        const targetVoice = voices.find(v => v.lang.startsWith(langPrefix));
+        if (targetVoice) utterance.voice = targetVoice;
+    }
     
     utterance.onend = (event) => {
       // Advance to next line only if the sequence wasn't interrupted by user mouse hover
