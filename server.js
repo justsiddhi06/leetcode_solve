@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
 
 dotenv.config();
 
@@ -24,46 +25,47 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const prompt = `You are a LeetCode expert. Provide the optimal solution for the following LeetCode problem: "${problemNumber}".
-The solution MUST be written in Python.
+CRITICAL INSTRUCTION: MAXIMIZE GENERATION SPEED. DO NOT write any code comments. Keep the algorithm explanation extremely brief (under 3 sentences). Provide a detailed, line-by-line breakdown of the optimal Python 3 solution in the "interactive_explanation" array, where "code" is the exact line of code and "explanation" is a natural, conversational spoken script explaining that line. You ONLY need to provide the "python3" solution in the "code" object. Do NOT provide all languages initially to maximize speed.
 You must return the response strictly as a JSON object with the following structure:
 {
   "title": "Problem Number. Problem Title",
   "difficulty": "Easy, Medium, or Hard",
   "algorithm": "A brief explanation of the optimal algorithm.",
+  "interactive_explanation": [
+    {
+      "code": "class Solution:",
+      "explanation": "This line defines the main class for our solution."
+    },
+    {
+      "code": "    def twoSum(self, nums, target):",
+      "explanation": "We define a function that takes an array of numbers and our target sum."
+    }
+  ],
+
   "steps": {
     "english": ["Step 1 in English", "Step 2 in English"],
     "hindi": ["कदम 1 हिंदी में", "कदम 2 हिंदी में"],
     "hinglish": ["Step 1 in Hinglish", "Step 2 in Hinglish"]
   },
-  "code": "The optimal python code solution here"
+  "code": {
+    "python3": "class Solution:\\n..."
+  }
 }
 
 Do NOT include any markdown formatting like \`\`\`json around the response. Return raw JSON only.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const ai = new GoogleGenAI({});
     
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-        }
-      })
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return res.status(response.status).json({ error: errorData.error?.message || "Failed to fetch from Gemini" });
-    }
-
-    const data = await response.json();
-    let content = data.candidates[0].content.parts[0].text.trim();
+    let content = response.text.trim();
 
     // Clean up markdown code blocks if the model still includes them
     const cleanedContent = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
@@ -73,6 +75,78 @@ Do NOT include any markdown formatting like \`\`\`json around the response. Retu
   } catch (error) {
     console.error("Server Error:", error);
     res.status(500).json({ error: error.message || "An unexpected error occurred on the server." });
+  }
+});
+
+app.post('/api/explain', async (req, res) => {
+  try {
+    const { title, language, code, spokenLanguage = 'english' } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API Key.' });
+    if (!title || !language) return res.status(400).json({ error: 'Missing required fields.' });
+
+    let prompt = '';
+    
+    if (code) {
+      prompt = `You are a LeetCode tutor.
+Problem: "${title}"
+Code Language: ${language}
+Explanation Spoken Language: ${spokenLanguage}
+
+CODE:
+${code}
+
+Provide a detailed, line-by-line spoken-word breakdown of this exact code in the requested Explanation Spoken Language (${spokenLanguage}).
+Return strictly as a JSON object with this exact structure:
+{
+  "interactive_explanation": [
+    {
+      "code": "exact line of code here",
+      "explanation": "natural spoken breakdown of what this line does in ${spokenLanguage}"
+    }
+  ]
+}
+Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
+    } else {
+      prompt = `You are a LeetCode tutor.
+Problem: "${title}"
+Target Code Language: ${language}
+Explanation Spoken Language: ${spokenLanguage}
+
+1. Provide the optimal working solution for this problem in ${language}.
+2. Provide a detailed, line-by-line spoken-word breakdown of your generated code in the requested Explanation Spoken Language (${spokenLanguage}).
+
+Return strictly as a JSON object with this exact structure:
+{
+  "code": "exact generated code here",
+  "interactive_explanation": [
+    {
+      "code": "exact line of code here",
+      "explanation": "natural spoken breakdown of what this line does in ${spokenLanguage}"
+    }
+  ]
+}
+Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
+    }
+
+    const ai = new GoogleGenAI({});
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
+    });
+
+    let content = response.text.trim();
+    const cleanedContent = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    res.json(JSON.parse(cleanedContent));
+
+  } catch (error) {
+    console.error("Explain endpoint error:", error);
+    res.status(500).json({ error: "Failed to generate interactive explanation." });
   }
 });
 
