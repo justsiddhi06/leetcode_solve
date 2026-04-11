@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { InteractivePlayer } from './InteractivePlayer';
+import { VideoExplainer } from './VideoExplainer';
 
 export function SolutionDisplay({ data, header }) {
   const [activeLang, setActiveLang] = useState('english');
   const [activeCodeLang, setActiveCodeLang] = useState('python3');
   const [explanations, setExplanations] = useState({});
+  const [videoExplanations, setVideoExplanations] = useState({});
   const [codes, setCodes] = useState({});
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
   const [playerState, setPlayerState] = useState({ isPlaying: false, index: -1 });
@@ -14,6 +16,9 @@ export function SolutionDisplay({ data, header }) {
   React.useEffect(() => {
     if (data?.interactive_explanation) {
       setExplanations({ python3: { english: data.interactive_explanation } });
+    }
+    if (data?.video_explanation) {
+      setVideoExplanations({ python3: { english: data.video_explanation } });
     }
     if (data?.code && typeof data.code !== 'string') {
       setCodes(data.code);
@@ -45,6 +50,15 @@ export function SolutionDisplay({ data, header }) {
             [codeLang]: {
               ...(prev[codeLang] || {}),
               [spokenLang]: result.interactive_explanation
+            }
+          }));
+        }
+        if (result.video_explanation) {
+          setVideoExplanations(prev => ({
+            ...prev,
+            [codeLang]: {
+              ...(prev[codeLang] || {}),
+              [spokenLang]: result.video_explanation
             }
           }));
         }
@@ -106,12 +120,12 @@ export function SolutionDisplay({ data, header }) {
   const isFocusMode = playerState.isPlaying;
   const currentExplanationArray = explanations[activeCodeLang]?.[activeLang] || data.interactive_explanation;
   const explanationLength = currentExplanationArray?.length || 0;
-  
+
   // Calculate which English step to highlight based on how far we are in the code explanation
-  const currentStepRatio = explanationLength > 1 && playerState.index >= 0 
-    ? (playerState.index / (explanationLength - 1)) 
+  const currentStepRatio = explanationLength > 1 && playerState.index >= 0
+    ? (playerState.index / (explanationLength - 1))
     : 0;
-  const activeStepIndex = playerState.isPlaying 
+  const activeStepIndex = playerState.isPlaying
     ? Math.min(stepsToRender.length - 1, Math.floor(currentStepRatio * stepsToRender.length))
     : -1;
 
@@ -126,27 +140,27 @@ export function SolutionDisplay({ data, header }) {
       'unique': 'A collection containing no duplicates.',
       'array': 'A continuous list of sequential memory used to store elements.'
     };
-    
+
     let parts = [text];
     Object.entries(terms).forEach(([term, def]) => {
       const regex = new RegExp(`\\b(${term})\\b`, 'gi');
       parts = parts.flatMap(p => {
-         if (typeof p !== 'string') return [p];
-         const splitStr = p.split(regex);
-         return splitStr.map((val, idx) => {
-            if (new RegExp(`^${term}$`, 'i').test(val)) {
-              return (
-                <span key={`${term}-${idx}`} className="relative group/tooltip inline-block cursor-help font-semibold text-amber-300 border-b border-dashed border-amber-400">
-                  {val}
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-900 border border-slate-700 text-white text-xs leading-relaxed rounded-xl shadow-2xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 text-center scale-95 group-hover/tooltip:scale-100">
-                    {def}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-700"></div>
-                  </span>
+        if (typeof p !== 'string') return [p];
+        const splitStr = p.split(regex);
+        return splitStr.map((val, idx) => {
+          if (new RegExp(`^${term}$`, 'i').test(val)) {
+            return (
+              <span key={`${term}-${idx}`} className="relative group/tooltip inline-block cursor-help font-semibold text-amber-300 border-b border-dashed border-amber-400">
+                {val}
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-900 border border-slate-700 text-white text-xs leading-relaxed rounded-xl shadow-2xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 text-center scale-95 group-hover/tooltip:scale-100">
+                  {def}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-700"></div>
                 </span>
-              );
-            }
-            return val;
-         });
+              </span>
+            );
+          }
+          return val;
+        });
       });
     });
     return parts;
@@ -162,7 +176,7 @@ export function SolutionDisplay({ data, header }) {
       {/* Left Column */}
       <div className="flex flex-col gap-8 w-full lg:sticky top-32">
         {header}
-        
+
         {/* Title & Difficulty */}
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5 mx-2">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-3">
@@ -190,18 +204,18 @@ export function SolutionDisplay({ data, header }) {
           </p>
 
           {explanations[activeCodeLang]?.[activeLang] ? (
-            <div className="mt-8 pt-4 border-t border-white/10 relative z-20">
-              <InteractivePlayer explanationData={explanations[activeCodeLang][activeLang]} spokenLanguage={activeLang} onStateChange={setPlayerState} />
+            <div className="mt-8 pt-4 border-t border-white/10">
+              <InteractivePlayer explanationData={explanations[activeCodeLang][activeLang]} spokenLanguage={activeLang} />
             </div>
           ) : isLoadingExplanation ? (
-            <div className="mt-8 pt-4 border-t border-white/10 text-slate-400 text-sm italic flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              Generating Interactive Explainer in {activeLang.charAt(0).toUpperCase() + activeLang.slice(1)}...
+            <div className="mt-8 pt-4 border-t border-white/10 text-slate-400 text-sm italic flex flex-col items-center justify-center gap-3 py-4">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              Generating Explanations in {activeLang.charAt(0).toUpperCase() + activeLang.slice(1)}...
             </div>
           ) : (
             data.interactive_explanation && (
-              <div className="mt-8 pt-4 border-t border-white/10 relative z-20">
-                <InteractivePlayer explanationData={data.interactive_explanation} spokenLanguage={activeLang} onStateChange={setPlayerState} />
+              <div className="mt-8 pt-4 border-t border-white/10">
+                <InteractivePlayer explanationData={data.interactive_explanation} spokenLanguage={activeLang} />
               </div>
             )
           )}
@@ -210,7 +224,7 @@ export function SolutionDisplay({ data, header }) {
 
       {/* Right Column */}
       <div className="flex flex-col gap-8 w-full pt-4">
-        
+
         {/* Step-by-Step */}
         <motion.section variants={itemVariants} className="glass-panel-deep rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] group-hover:bg-blue-500/10 transition-colors duration-700 pointer-events-none"></div>
@@ -231,8 +245,8 @@ export function SolutionDisplay({ data, header }) {
                     key={lang}
                     onClick={() => handleSpokenLangChange(lang)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${activeLang === lang
-                        ? 'bg-blue-500/20 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.3)] border border-blue-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/10 border border-transparent'
+                      ? 'bg-blue-500/20 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.3)] border border-blue-500/30'
+                      : 'text-slate-400 hover:text-white hover:bg-white/10 border border-transparent'
                       }`}
                   >
                     {lang.charAt(0).toUpperCase() + lang.slice(1)}
@@ -246,17 +260,17 @@ export function SolutionDisplay({ data, header }) {
             {stepsToRender.map((step, index) => {
               const isHighlighted = activeStepIndex === index;
               return (
-              <div 
-                key={index} 
-                className={`flex items-start gap-4 p-3 rounded-xl transition-all duration-500 ${isHighlighted ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)] scale-[1.02]' : 'border border-transparent'}`}
-              >
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center font-medium text-sm mt-0.5 transition-colors duration-500 ${isHighlighted ? 'bg-blue-500 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-blue-500/20 border-blue-500/30 text-blue-300'}`}>
-                  {index + 1}
+                <div
+                  key={index}
+                  className={`flex items-start gap-4 p-3 rounded-xl transition-all duration-500 ${isHighlighted ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)] scale-[1.02]' : 'border border-transparent'}`}
+                >
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center font-medium text-sm mt-0.5 transition-colors duration-500 ${isHighlighted ? 'bg-blue-500 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-blue-500/20 border-blue-500/30 text-blue-300'}`}>
+                    {index + 1}
+                  </div>
+                  <p className={`pt-1 leading-relaxed transition-colors duration-500 ${isHighlighted ? 'text-white font-medium' : 'text-slate-300'}`}>
+                    {step}
+                  </p>
                 </div>
-                <p className={`pt-1 leading-relaxed transition-colors duration-500 ${isHighlighted ? 'text-white font-medium' : 'text-slate-300'}`}>
-                  {step}
-                </p>
-              </div>
               );
             })}
 
