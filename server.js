@@ -150,6 +150,51 @@ Do NOT wrap the response in markdown \`\`\`json blocks. Return raw JSON.`;
   }
 });
 
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { messages, context } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API Key.' });
+    if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Missing or invalid messages array.' });
+
+    // Format previous messages for the prompt
+    const chatHistory = messages.map(m => `${m.role === 'user' ? 'Student' : 'AI'}: ${m.content}`).join('\n');
+    
+    // Add LeetCode problem context if available
+    const problemContextSource = context && context.title ? `You are a friendly, expert Computer Science tutor helping a student understand a LeetCode problem.
+Current Problem context: ${context.title}
+Current Code Context:
+\`\`\`
+${context.code || 'None yet'}
+\`\`\`
+` : 'You are a friendly, expert Computer Science tutor helping a student learn coding.';
+
+    const systemPrompt = `CRITICAL INSTRUCTION: You MUST respond in either English or Hinglish (Hindi written using the English alphabet). Do NOT use the Devanagari script (e.g. do not use words like 'क्या', use 'kya' instead). Make your explanation concise, extremely clear, and encouraging.
+
+${problemContextSource}
+
+Chat History:
+${chatHistory}
+
+AI (respond in Hinglish or English):`;
+
+    const ai = new GoogleGenAI({});
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: systemPrompt,
+      config: {
+        temperature: 0.7,
+      }
+    });
+
+    res.json({ reply: response.text.trim() });
+  } catch (error) {
+    console.error("Chat endpoint error:", error);
+    res.status(500).json({ error: "Failed to generate chat response." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend API Server running on port ${PORT}`);
 });
