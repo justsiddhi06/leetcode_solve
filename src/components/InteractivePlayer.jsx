@@ -67,7 +67,7 @@ export function InteractivePlayer({ explanationData, spokenLanguage = 'english',
       if (targetVoice) utterance.voice = targetVoice;
     }
 
-    utterance.onend = (event) => {
+    utterance.onend = () => {
       // Advance to next line only if the sequence wasn't interrupted by user mouse hover
       if (isPlayingRef.current && currentIndexRef.current === index) {
         playLine(index + 1);
@@ -81,30 +81,9 @@ export function InteractivePlayer({ explanationData, spokenLanguage = 'english',
     window.speechSynthesis.speak(utterance);
   };
 
-  const highlightCode = (codeStr) => {
-    // Simple basic syntax highlighting logic for Python/JS keywords
-    const keywords = /\b(class|def|var|let|const|function|return|if|else|for|while|import|from|self|True|False|None)\b/g;
-    const types = /\b(int|float|str|bool|list|dict|String|Number|Boolean)\b/g;
-    const strings = /(['"].*?['"])/g;
-    const comments = /(#.*|\/\/.*)/g;
 
-    let html = codeStr
-      .replace(comments, '<span class="text-slate-500 italic">$&</span>')
-      .replace(strings, '<span class="text-green-400">$&</span>')
-      .replace(keywords, '<span class="text-purple-400 font-medium">$&</span>')
-      .replace(types, '<span class="text-yellow-300">$&</span>');
 
-    // function calls
-    html = html.replace(/(\w+)(?=\()/g, (match, p1) => {
-      // Don't colorize keywords if they match function signature
-      if (/^(if|for|while|def|class|return)$/.test(p1)) return p1;
-      return `<span class="text-blue-400">${p1}</span>`;
-    });
 
-    return html;
-  };
-
-  const containerRef = useRef(null);
   const lineRefs = useRef([]);
 
   useEffect(() => {

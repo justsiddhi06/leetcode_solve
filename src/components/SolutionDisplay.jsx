@@ -8,7 +8,7 @@ export function SolutionDisplay({ data, header }) {
   const [activeLang, setActiveLang] = useState('english');
   const [activeCodeLang, setActiveCodeLang] = useState('python3');
   const [explanations, setExplanations] = useState({});
-  const [videoExplanations, setVideoExplanations] = useState({});
+
   const [codes, setCodes] = useState({});
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
   const [playerState, setPlayerState] = useState({ isPlaying: false, index: -1 });
@@ -16,9 +16,6 @@ export function SolutionDisplay({ data, header }) {
   React.useEffect(() => {
     if (data?.interactive_explanation) {
       setExplanations({ python3: { english: data.interactive_explanation } });
-    }
-    if (data?.video_explanation) {
-      setVideoExplanations({ python3: { english: data.video_explanation } });
     }
     if (data?.code && typeof data.code !== 'string') {
       setCodes(data.code);
@@ -50,15 +47,6 @@ export function SolutionDisplay({ data, header }) {
             [codeLang]: {
               ...(prev[codeLang] || {}),
               [spokenLang]: result.interactive_explanation
-            }
-          }));
-        }
-        if (result.video_explanation) {
-          setVideoExplanations(prev => ({
-            ...prev,
-            [codeLang]: {
-              ...(prev[codeLang] || {}),
-              [spokenLang]: result.video_explanation
             }
           }));
         }
@@ -205,7 +193,7 @@ export function SolutionDisplay({ data, header }) {
 
           {explanations[activeCodeLang]?.[activeLang] ? (
             <div className="mt-8 pt-4 border-t border-white/10">
-              <InteractivePlayer explanationData={explanations[activeCodeLang][activeLang]} spokenLanguage={activeLang} />
+              <InteractivePlayer explanationData={explanations[activeCodeLang][activeLang]} spokenLanguage={activeLang} onStateChange={setPlayerState} />
             </div>
           ) : isLoadingExplanation ? (
             <div className="mt-8 pt-4 border-t border-white/10 text-slate-400 text-sm italic flex flex-col items-center justify-center gap-3 py-4">
@@ -215,7 +203,7 @@ export function SolutionDisplay({ data, header }) {
           ) : (
             data.interactive_explanation && (
               <div className="mt-8 pt-4 border-t border-white/10">
-                <InteractivePlayer explanationData={data.interactive_explanation} spokenLanguage={activeLang} />
+                <InteractivePlayer explanationData={data.interactive_explanation} spokenLanguage={activeLang} onStateChange={setPlayerState} />
               </div>
             )
           )}
