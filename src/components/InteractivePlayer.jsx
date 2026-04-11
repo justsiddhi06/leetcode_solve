@@ -102,19 +102,34 @@ export function InteractivePlayer({ explanationData, spokenLanguage = 'english' 
         </div>
       </div>
       <div className="p-4 font-mono text-sm overflow-x-auto min-h-[150px] leading-loose">
-        {explanationData.map((item, index) => (
-          <div 
-            key={index} 
-            onMouseEnter={() => playLine(index)}
-            className={`px-4 py-2 cursor-pointer rounded transition-all whitespace-pre ${
-              playingIndex === index 
-                ? 'bg-blue-500/30 text-white font-medium border-l-4 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' 
-                : 'text-slate-300 hover:bg-white/5 border-l-4 border-transparent opacity-80 hover:opacity-100'
-            }`}
-          >
-            {item.code}
-          </div>
-        ))}
+        {explanationData.map((item, index) => {
+          const isHeading = item.code.trim().startsWith('---');
+          
+          let baseStyles = isHeading 
+            ? 'px-4 py-3 my-4 cursor-pointer rounded-lg transition-all font-sans font-bold text-center tracking-widest bg-purple-500/10 border border-purple-500/20'
+            : 'px-4 py-2 cursor-pointer rounded transition-all whitespace-pre font-mono text-sm';
+          
+          let stateStyles = '';
+          if (playingIndex === index) {
+            stateStyles = isHeading 
+              ? 'bg-purple-500/30 text-purple-100 border-l-4 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+              : 'bg-blue-500/30 text-white font-medium border-l-4 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]';
+          } else {
+            stateStyles = isHeading
+              ? 'text-purple-300 hover:bg-purple-500/20 opacity-90 hover:opacity-100'
+              : 'text-slate-300 hover:bg-white/5 border-l-4 border-transparent opacity-80 hover:opacity-100';
+          }
+
+          return (
+            <div 
+              key={index} 
+              onMouseEnter={() => playLine(index)}
+              className={`${baseStyles} ${stateStyles}`}
+            >
+              {isHeading ? item.code.replace(/-/g, '').trim() : item.code}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
