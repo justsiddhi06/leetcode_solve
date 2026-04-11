@@ -17,6 +17,7 @@ function App() {
   const [history, setHistory] = useState([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeProblemId, setActiveProblemId] = useState(null);
+  const [activeView, setActiveView] = useState('main');
 
   useEffect(() => {
     setHistory(getHistory());
@@ -32,6 +33,7 @@ function App() {
       setSolutionData(data);
       const newProblemId = data.title;
       setActiveProblemId(newProblemId);
+      setActiveView('main');
       
       const updatedHistory = addOrUpdateHistoryItem({
         id: newProblemId,
@@ -54,6 +56,9 @@ function App() {
         <Header 
           onToggleChat={() => setIsChatOpen(!isChatOpen)} 
           onToggleHistory={() => setIsHistoryOpen(true)} 
+          onNavSolution={() => setActiveView('solution')}
+          onNavHome={() => setActiveView('main')}
+          activeView={activeView}
         />
         <HistorySidebar 
           isOpen={isHistoryOpen} 
@@ -78,9 +83,16 @@ function App() {
           </div>
         )}
 
-        {solutionData && <SolutionDisplay data={solutionData} header={<ProblemInput onSolve={handleSolve} isLoading={isLoading} compact={true} />} />}
+        {solutionData && <SolutionDisplay data={solutionData} header={<ProblemInput onSolve={handleSolve} isLoading={isLoading} compact={true} />} view={activeView} />}
         
-        {!solutionData && !isLoading && !error && (
+        {!solutionData && activeView === 'solution' && (
+          <div className="text-center text-slate-400 mt-12 py-10 bg-white/5 border border-white/10 rounded-2xl w-full max-w-2xl">
+              <Code2 className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+              <p>Search for a problem first to see its optimal solution.</p>
+          </div>
+        )}
+
+        {!solutionData && !isLoading && !error && activeView === 'main' && (
           <div className="max-w-5xl mx-auto pt-16 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
               <div className="glass-panel p-6 rounded-2xl animate-float hover:border-primary/50 transition-colors duration-500 cursor-default group" style={{ animationDelay: '0s' }}>

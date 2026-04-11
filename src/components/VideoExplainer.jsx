@@ -94,7 +94,7 @@ export function VideoExplainer({ videoData, spokenLanguage = 'english', onComple
   if (!demo && !complexity) return null;
 
   return (
-    <div className="bg-[#0a0b10]/90 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden my-8 shadow-[0_8px_32px_rgba(0,0,0,0.6)] relative min-h-[450px] flex flex-col">
+    <div className="bg-[#0a0b10]/90 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] relative min-h-[250px] flex flex-col">
       {/* Progress Bar */}
       <div className="absolute top-0 left-0 h-1 bg-white/5 w-full z-20">
         <motion.div 
@@ -249,24 +249,6 @@ export function VideoExplainer({ videoData, spokenLanguage = 'english', onComple
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
-
-      {/* Explanation Text at bottom (Subtitles) */}
-      <div className="bg-[#0c0e15]/90 backdrop-blur-2xl border-t border-white/10 p-6 md:p-10 text-center min-h-[140px] flex items-center justify-center relative z-20 transition-colors shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={view + currentStep}
-            initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.3 }}
-            className="text-slate-100 text-xl md:text-2xl lg:text-3xl font-light tracking-wide max-w-4xl mx-auto leading-relaxed"
-          >
-            <span className="text-blue-500/50 font-serif text-4xl leading-none mr-2">"</span>
-            {view === 'demo' ? demo?.steps[currentStep]?.explanation : complexity?.explanation}
-            <span className="text-purple-500/50 font-serif text-4xl leading-none ml-2">"</span>
-          </motion.p>
         </AnimatePresence>
       </div>
     </div>

@@ -4,10 +4,11 @@ import { CheckCircle2, Code2, Lightbulb, ListOrdered, GlobeIcon, Image as ImageI
 import { InteractivePlayer } from './InteractivePlayer';
 import { VideoExplainer } from './VideoExplainer';
 
-export function SolutionDisplay({ data, header }) {
+export function SolutionDisplay({ data, header, view = 'main' }) {
   const [activeLang, setActiveLang] = useState('english');
   const [activeCodeLang, setActiveCodeLang] = useState('python3');
   const [explanations, setExplanations] = useState({});
+  const [videoExplanations, setVideoExplanations] = useState({});
 
   const [codes, setCodes] = useState({});
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
@@ -16,6 +17,9 @@ export function SolutionDisplay({ data, header }) {
   React.useEffect(() => {
     if (data?.interactive_explanation) {
       setExplanations({ python3: { english: data.interactive_explanation } });
+    }
+    if (data?.video_explanation) {
+      setVideoExplanations({ python3: { english: data.video_explanation } });
     }
     if (data?.code && typeof data.code !== 'string') {
       setCodes(data.code);
@@ -47,6 +51,15 @@ export function SolutionDisplay({ data, header }) {
             [codeLang]: {
               ...(prev[codeLang] || {}),
               [spokenLang]: result.interactive_explanation
+            }
+          }));
+        }
+        if (result.video_explanation) {
+          setVideoExplanations(prev => ({
+            ...prev,
+            [codeLang]: {
+              ...(prev[codeLang] || {}),
+              [spokenLang]: result.video_explanation
             }
           }));
         }
@@ -107,6 +120,7 @@ export function SolutionDisplay({ data, header }) {
   // --- Education Helpers ---
   const isFocusMode = playerState.isPlaying;
   const currentExplanationArray = explanations[activeCodeLang]?.[activeLang] || data.interactive_explanation;
+  const currentVideoExplanation = videoExplanations[activeCodeLang]?.[activeLang] || data.video_explanation;
   const explanationLength = currentExplanationArray?.length || 0;
 
   // Calculate which English step to highlight based on how far we are in the code explanation
@@ -153,6 +167,78 @@ export function SolutionDisplay({ data, header }) {
     });
     return parts;
   };
+
+  const optimalSolutionBlock = (
+    <motion.section id="optimal-solution" variants={itemVariants} className={`glass-panel-deep rounded-3xl overflow-hidden shadow-2xl relative transition-all duration-700 ${isFocusMode ? 'opacity-30 blur-[2px] grayscale pointer-events-none scale-95' : 'opacity-100'}`}>
+      <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"></div>
+      <div className="bg-black/60 backdrop-blur-md px-8 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-white/10">
+        <h3 className="flex items-center gap-3 font-display font-semibold text-xl text-white">
+          <div className="p-2 bg-purple-500/20 rounded-lg border border-purple-500/30">
+            <Code2 className="w-5 h-5 text-purple-400" />
+          </div>
+          Optimal Solution
+        </h3>
+
+        {/* Code Language Tabs */}
+        {typeof data.code !== 'string' && (
+          <div className="relative w-full sm:w-auto">
+            <select
+              value={activeCodeLang}
+              onChange={(e) => handleCodeLangChange(e.target.value)}
+              className="appearance-none w-full sm:w-auto bg-black/40 px-4 py-1.5 pr-10 text-xs sm:text-sm font-medium text-purple-300 rounded-xl border border-white/5 shadow-[0_0_10px_rgba(168,85,247,0.15)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              {['python3', 'python', 'cpp', 'java', 'javascript', 'typescript', 'csharp', 'c', 'go', 'kotlin', 'swift', 'rust', 'ruby', 'php', 'dart', 'scala'].map((lang) => (
+                <option key={lang} value={lang} className="bg-slate-900 text-slate-300">
+                  {lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : lang === 'javascript' ? 'JavaScript' : lang === 'typescript' ? 'TypeScript' : lang === 'php' ? 'PHP' : lang.charAt(0).toUpperCase() + lang.slice(1)}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </div>
+        )}
+
+        <div className="hidden sm:flex gap-2">
+          <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_5px_rgba(244,63,94,0.5)]"></div>
+          <div className="w-3 h-3 rounded-full bg-amber-500/80 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></div>
+          <div className="w-3 h-3 rounded-full bg-emerald-500/80 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>
+        </div>
+      </div>
+      <div className="p-8 overflow-x-auto min-h-[200px] max-h-[500px] overflow-y-auto bg-[#030712] selection:bg-purple-500/30 relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <pre className="text-[15px] text-slate-300 font-mono leading-relaxed">
+          <code>{codeToRender}</code>
+        </pre>
+      </div>
+    </motion.section>
+  );
+
+  if (view === 'solution') {
+    return (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="w-full pb-20 flex flex-col gap-8 items-center"
+      >
+        <div className="w-full max-w-4xl flex flex-col gap-8 lg:mt-8">
+          {header}
+          <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5 mx-2">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-3">
+              <div className="p-1.5 rounded-xl bg-primary/20 backdrop-blur-sm border border-primary/30 shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                <CheckCircle2 className="w-6 h-6 text-primary" />
+              </div>
+              {data.title}
+            </h2>
+            <span className={'px-3 py-1 text-xs font-semibold rounded-xl border backdrop-blur-md uppercase tracking-wider ' + getDifficultyColor(data.difficulty)}>
+              {data.difficulty}
+            </span>
+          </motion.div>
+          {optimalSolutionBlock}
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -213,6 +299,13 @@ export function SolutionDisplay({ data, header }) {
       {/* Right Column */}
       <div className="flex flex-col gap-8 w-full pt-4">
 
+        {/* Video Explainer (Visualizer) */}
+        {currentVideoExplanation && (
+          <motion.section variants={itemVariants}>
+            <VideoExplainer videoData={currentVideoExplanation} spokenLanguage={activeLang} />
+          </motion.section>
+        )}
+
         {/* Step-by-Step */}
         <motion.section variants={itemVariants} className="glass-panel-deep rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] group-hover:bg-blue-500/10 transition-colors duration-700 pointer-events-none"></div>
@@ -265,50 +358,6 @@ export function SolutionDisplay({ data, header }) {
             {stepsToRender.length === 0 && (
               <p className="text-slate-500 italic">No steps available in this language.</p>
             )}
-          </div>
-        </motion.section>
-
-        {/* Code Solution */}
-        <motion.section variants={itemVariants} className={`glass-panel-deep rounded-3xl overflow-hidden shadow-2xl relative transition-all duration-700 ${isFocusMode ? 'opacity-30 blur-[2px] grayscale pointer-events-none scale-95' : 'opacity-100'}`}>
-          <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"></div>
-          <div className="bg-black/60 backdrop-blur-md px-8 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-white/10">
-            <h3 className="flex items-center gap-3 font-display font-semibold text-xl text-white">
-              <div className="p-2 bg-purple-500/20 rounded-lg border border-purple-500/30">
-                <Code2 className="w-5 h-5 text-purple-400" />
-              </div>
-              Optimal Solution
-            </h3>
-
-            {/* Code Language Tabs */}
-            {typeof data.code !== 'string' && (
-              <div className="relative w-full sm:w-auto">
-                <select
-                  value={activeCodeLang}
-                  onChange={(e) => handleCodeLangChange(e.target.value)}
-                  className="appearance-none w-full sm:w-auto bg-black/40 px-4 py-1.5 pr-10 text-xs sm:text-sm font-medium text-purple-300 rounded-xl border border-white/5 shadow-[0_0_10px_rgba(168,85,247,0.15)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  {['python3', 'python', 'cpp', 'java', 'javascript', 'typescript', 'csharp', 'c', 'go', 'kotlin', 'swift', 'rust', 'ruby', 'php', 'dart', 'scala'].map((lang) => (
-                    <option key={lang} value={lang} className="bg-slate-900 text-slate-300">
-                      {lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : lang === 'javascript' ? 'JavaScript' : lang === 'typescript' ? 'TypeScript' : lang === 'php' ? 'PHP' : lang.charAt(0).toUpperCase() + lang.slice(1)}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
-            )}
-
-            <div className="hidden sm:flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_5px_rgba(244,63,94,0.5)]"></div>
-              <div className="w-3 h-3 rounded-full bg-amber-500/80 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></div>
-              <div className="w-3 h-3 rounded-full bg-emerald-500/80 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>
-            </div>
-          </div>
-          <div className="p-8 overflow-x-auto min-h-[200px] max-h-[500px] overflow-y-auto bg-[#030712] selection:bg-purple-500/30 relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            <pre className="text-[15px] text-slate-300 font-mono leading-relaxed">
-              <code>{codeToRender}</code>
-            </pre>
           </div>
         </motion.section>
       </div>
